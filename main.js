@@ -62,7 +62,7 @@ class Editor {
 
   // Add line
   newLine() {
-    this.text.push;
+    this.text.push("");
     this.cursorPos[0] = 0;
     this.cursorPos[1]++;
     this.activeLineIndex++;
