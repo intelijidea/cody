@@ -40,7 +40,7 @@ class Editor {
 
   // Remove character
   remove() {
-    if (this.cursorPos[0] === 0 && this.activeLineIndex == 0) return;
+    if (this.cursorPos[0] === 0 && this.activeLineIndex === 0) return;
 
     if (this.cursorPos[0] === 0) {
       this.text.pop();
@@ -131,7 +131,7 @@ class Canvas2DRenderer {
     this.textMetrics.height = tM.emHeightAscent;
   }
   drawText(text, offX = 0, offY = 0) {
-    this.context.fillStyle = "white";
+    this.context.fillStyle = "#FFF";
     this.context.fillText(
       text,
       GUTTER_WIDTH + 4 + offX,

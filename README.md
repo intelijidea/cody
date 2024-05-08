@@ -2,6 +2,8 @@
 
 A Stupid Text Editor which render code into html canvas, written in JavaScript
 
+\*\*This this somehow does'nt work on Chrome, i dont know why.
+
 ### ToDo
 
 - Fix bugs and issues while adding new line.
