@@ -1,8 +1,8 @@
 const BACKGROUND_COLOR = "#1e1e1e";
 const GUTTER_WIDTH = 32;
 const LINE_SPACE = 19;
-const WINDOW_WIDTH = window.innerWidth;
-const WINDOW_HEIGHT = window.innerHeight;
+let WINDOW_WIDTH = window.innerWidth;
+let WINDOW_HEIGHT = window.innerHeight;
 
 const canvas = document.querySelector("canvas");
 const context = canvas.getContext("2d");
@@ -11,18 +11,20 @@ const input = document.querySelector("input");
 canvas.width = WINDOW_WIDTH;
 canvas.height = WINDOW_HEIGHT;
 
+// It doesn't wurk, Anybody fix it please.
+// window.addEventListener("resize", () => {
+//   WINDOW_WIDTH = window.innerWidth;
+//   WINDOW_HEIGHT = window.innerHeight;
+//   editor.update();
+// });
+
 // The base class for editor which contains all editing features.
 class Editor {
   constructor(text, context) {
-    // this.text = text ? text.split("\n") : this.text;
+    this.text = text && text.split("\n");
     this.context = context;
-    this.text = text;
     this.activeLineIndex = 0;
     this.cursorPos = [0, 0];
-    if (text != null && text[0] !== "") {
-      this.cursorPos[0] = text[0].length;
-    }
-
     this.renderer = new Canvas2DRenderer(context);
 
     // Draw Everything
@@ -30,8 +32,10 @@ class Editor {
   }
 
   // Add new character
-  insert(text) {
+  insertChar(text) {
     if (text) {
+      var letters = String();
+
       this.text[this.activeLineIndex] = this.text[this.activeLineIndex] + text;
       this.cursorPos[0]++;
     }
@@ -39,7 +43,8 @@ class Editor {
   }
 
   // Remove character
-  remove() {
+  // Have some bug over here, we have to delete character behind the cursor
+  removeChar() {
     if (this.cursorPos[0] === 0 && this.activeLineIndex === 0) return;
 
     if (this.cursorPos[0] === 0) {
@@ -69,6 +74,49 @@ class Editor {
     this.update();
   }
 
+  matchCursorInXAxis() {
+    if (this.cursorPos[0] < this.text[this.activeLineIndex].length) {
+      return;
+    } else {
+      this.cursorPos[0] = this.text[this.activeLineIndex].length;
+    }
+  }
+  moveCursorUp() {
+    if (this.cursorPos[1] !== 0) {
+      this.cursorPos[1]--;
+      this.activeLineIndex--;
+      this.matchCursorInXAxis();
+      this.update();
+    }
+  }
+  moveCursorDown() {
+    if (this.cursorPos[1] < this.text.length) {
+      this.cursorPos[1]++;
+      this.activeLineIndex++;
+      this.matchCursorInXAxis();
+      this.update();
+    }
+  }
+  moveCursorLeft() {
+    if (this.cursorPos[0] !== 0) {
+      this.cursorPos[0]--;
+    } else if (this.cursorPos[1] !== 0) {
+      this.cursorPos[1]--;
+      this.activeLineIndex--;
+      this.cursorPos[0] = this.text[this.activeLineIndex].length;
+    }
+    this.update();
+  }
+  moveCursorRight() {
+    if (this.cursorPos[0] < this.text[this.activeLineIndex].length) {
+      this.cursorPos[0]++;
+    } else {
+      this.cursorPos[0] = 0;
+      this.cursorPos[1]++;
+      this.activeLineIndex++;
+    }
+    this.update();
+  }
   // draw line number.
   drawLineNumber() {
     this.text.map((v, i) => {
@@ -86,8 +134,12 @@ class Editor {
     this.renderer.update(this.text, this.cursorPos);
     this.drawLineNumber();
     input.style.transform = `translate(${
-      GUTTER_WIDTH + 5 + this.cursorPos[0] * this.renderer.textMetrics.width
-    }px,0)`;
+      5 +
+      GUTTER_WIDTH +
+      this.cursorPos[0] * (this.renderer.textMetrics.width + 1.4)
+    }px,${
+      this.cursorPos[1] * LINE_SPACE + this.renderer.textMetrics.height - 5
+    }px)`;
   }
 }
 
@@ -96,15 +148,13 @@ class Canvas2DRenderer {
     this.context = context;
     this.textMetrics = { width: 0, height: 0 };
     this.calcText();
-
     this.drawRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, BACKGROUND_COLOR);
-
     this.context.font = "14px monospace";
   }
   update(text, cursorPos) {
     // Background
     this.drawRect(
-      WINDOW_WIDTH,
+      WINDOW_WIDTH - GUTTER_WIDTH,
       WINDOW_HEIGHT,
       GUTTER_WIDTH,
       0,
@@ -124,11 +174,12 @@ class Canvas2DRenderer {
     this.context.fillStyle = background;
     this.context.fillRect(x, y, width, height);
   }
-
   calcText() {
     const tM = this.context.measureText("C");
     this.textMetrics.width = tM.width;
-    this.textMetrics.height = tM.emHeightAscent;
+    // The thing below is not available in chromium, I was causing text rendering issue in chromium
+    // this.textMetrics.height = tM.emHeightAscent;
+    this.textMetrics.height = tM.actualBoundingBoxAscent;
   }
   drawText(text, offX = 0, offY = 0) {
     this.context.fillStyle = "#FFF";
@@ -153,32 +204,40 @@ class Canvas2DRenderer {
 
 const editor = new Editor(
   //Demo code
-  [
-    `const input = document.querySelector("input");`,
-    "",
-    "const width = window.innerWidth;",
-    "const height = window.innerHeight;",
-  ],
+  `input.addEventListener("input", (i) => {
+  editor.insert(i.target.value);
+  i.target.value = "";
+});`,
+
   // Canvas 2d context
   context
 );
 
 input.addEventListener("input", (i) => {
-  editor.insert(i.target.value);
+  editor.insertChar(i.target.value);
   i.target.value = "";
 });
 
 input.addEventListener("keydown", (i) => {
   switch (i.key) {
     case "Backspace":
-      editor.remove();
+      editor.removeChar();
       break;
     case "Enter":
       editor.newLine();
       break;
-
-    // TODO:
-    // case "ArrowLeft","ArrowRight","ArrowUp","ArrowDown"
+    case "ArrowUp":
+      editor.moveCursorUp();
+      break;
+    case "ArrowDown":
+      editor.moveCursorDown();
+      break;
+    case "ArrowLeft":
+      editor.moveCursorLeft();
+      break;
+    case "ArrowRight":
+      editor.moveCursorRight();
+      break;
     default:
       break;
   }
@@ -197,10 +256,14 @@ window.addEventListener("focus", () => input.focus());
 canvas.addEventListener("focus", () => input.focus());
 canvas.addEventListener("click", () => input.focus());
 
-/* First attempt to handle keyboard events,
-And i cancled this methode due to performance issue */
+/* 
+   First attempt to handle keyboard events,
+   And i cancled this methode due to performance issue 
+   Kept for Referance.
+*/
 
-/* window.addEventListener("keyup", (e) => {
+/* 
+  window.addEventListener("keyup", (e) => {
   console.log(e);
 
   switch (e.key) {

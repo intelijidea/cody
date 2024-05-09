@@ -1,13 +1,11 @@
 # Cody
 
-A Stupid Text Editor which render code into html canvas, written in JavaScript
-
-\*\*This this somehow does'nt work on Chrome, i dont know why.
+A Stupid Text Editor which render code into html canvas, written in JavaScript. A Work In Progress( WIP 🚧 ) Project.
 
 ### ToDo
 
 - Fix bugs and issues while adding new line.
-- Add cursor movement with arrow keys.
+- Fix bug when adding character in-between text in same line.
 - Add scrollbar.
 
 ### How to Run
