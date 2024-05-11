@@ -90,7 +90,7 @@ class Editor {
     }
   }
   moveCursorDown() {
-    if (this.cursorPos[1] < this.text.length) {
+    if (this.cursorPos[1] < this.text.length - 1) {
       this.cursorPos[1]++;
       this.activeLineIndex++;
       this.matchCursorInXAxis();
@@ -110,7 +110,7 @@ class Editor {
   moveCursorRight() {
     if (this.cursorPos[0] < this.text[this.activeLineIndex].length) {
       this.cursorPos[0]++;
-    } else {
+    } else if (this.cursorPos[1] < this.text.length - 1) {
       this.cursorPos[0] = 0;
       this.cursorPos[1]++;
       this.activeLineIndex++;
@@ -122,7 +122,7 @@ class Editor {
     this.text.map((v, i) => {
       this.context.fillStyle = "white";
       this.context.fillText(
-        i,
+        i + 1,
         8,
         this.renderer.textMetrics.height + 5 + i * LINE_SPACE
       );

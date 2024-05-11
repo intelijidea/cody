@@ -5,7 +5,7 @@ A live preview of this site is available at https://meowsocute.github.io/cody/.
 
 ### ToDo
 
-- implement basic editing features (Selection, etc...)
+- Implement basic editing features (Selection, etc...)
 - Fix bugs and issues while adding new line.
 - Add scrollbar.
 
