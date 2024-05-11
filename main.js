@@ -1,8 +1,8 @@
 const BACKGROUND_COLOR = "#1e1e1e";
 const GUTTER_WIDTH = 32;
 const LINE_SPACE = 19;
-let WINDOW_WIDTH = window.innerWidth;
-let WINDOW_HEIGHT = window.innerHeight;
+const WINDOW_WIDTH = window.innerWidth;
+const WINDOW_HEIGHT = window.innerHeight;
 
 const canvas = document.querySelector("canvas");
 const context = canvas.getContext("2d");
@@ -21,7 +21,7 @@ canvas.height = WINDOW_HEIGHT;
 // The base class for editor which contains all editing features.
 class Editor {
   constructor(text, context) {
-    this.text = text && text.split("\n");
+    this.text = text?.split("\n");
     this.context = context;
     this.activeLineIndex = 0;
     this.cursorPos = [0, 0];
@@ -34,9 +34,10 @@ class Editor {
   // Add new character
   insertChar(text) {
     if (text) {
-      var letters = String();
-
-      this.text[this.activeLineIndex] = this.text[this.activeLineIndex] + text;
+      this.text[this.activeLineIndex] =
+        this.text[this.activeLineIndex].slice(0, this.cursorPos[0]) +
+        text +
+        this.text[this.activeLineIndex].slice(this.cursorPos[0]);
       this.cursorPos[0]++;
     }
     this.update();
@@ -56,10 +57,10 @@ class Editor {
       return;
     }
 
-    this.text[this.activeLineIndex] = this.text[this.activeLineIndex].slice(
-      0,
-      this.text[this.activeLineIndex].length - 1
-    );
+    this.text[this.activeLineIndex] =
+      this.text[this.activeLineIndex].slice(0, this.cursorPos[0] - 1) +
+      this.text[this.activeLineIndex].slice(this.cursorPos[0]);
+
     this.cursorPos[0]--;
 
     this.update();
@@ -77,9 +78,8 @@ class Editor {
   matchCursorInXAxis() {
     if (this.cursorPos[0] < this.text[this.activeLineIndex].length) {
       return;
-    } else {
-      this.cursorPos[0] = this.text[this.activeLineIndex].length;
     }
+    this.cursorPos[0] = this.text[this.activeLineIndex].length;
   }
   moveCursorUp() {
     if (this.cursorPos[1] !== 0) {
@@ -186,8 +186,7 @@ class Canvas2DRenderer {
     this.context.fillText(
       text,
       GUTTER_WIDTH + 4 + offX,
-      5 + this.textMetrics.height + offY,
-      WINDOW_WIDTH
+      5 + this.textMetrics.height + offY
     );
   }
   rendererCursor(cursorPos) {
@@ -195,7 +194,7 @@ class Canvas2DRenderer {
       1,
       this.textMetrics.height + 6,
       // TODO: Replace hardcoded value
-      5 + GUTTER_WIDTH + cursorPos[0] * (this.textMetrics.width + 1.4),
+      5 + GUTTER_WIDTH + cursorPos[0] * (this.textMetrics.width + 1.3),
       cursorPos[1] * LINE_SPACE + this.textMetrics.height - 5,
       "white"
     );
@@ -255,35 +254,3 @@ tick();
 window.addEventListener("focus", () => input.focus());
 canvas.addEventListener("focus", () => input.focus());
 canvas.addEventListener("click", () => input.focus());
-
-/* 
-   First attempt to handle keyboard events,
-   And i cancled this methode due to performance issue 
-   Kept for Referance.
-*/
-
-/* 
-  window.addEventListener("keyup", (e) => {
-  console.log(e);
-
-  switch (e.key) {
-    case "Backspace":
-      editor.removeFrom(editor.cursorPos);
-      break;
-    case "Shift":
-    case "Alt":
-    case "Tab":
-    case "Control":
-    case "ArrowLeft":
-    case "ArrowRight":
-    case "ArrowUp":
-    case "ArrowDown":
-    case "Enter":
-      console.log("Todo....");
-      break;
-    default:
-      editor.addChar(e.key);
-  }
-  console.log(editor);
-});
- */
