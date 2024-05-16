@@ -23,10 +23,9 @@ class Editor {
   constructor(text, context) {
     this.text = text?.split("\n");
     this.context = context;
-    this.activeLineIndex = 0;
-    this.cursorPos = [0, 0];
+    this.cursorPos = new Pointer(0, 0);
     this.renderer = new Canvas2DRenderer(context);
-
+    this.keyModifier = 0;
     // Draw Everything
     this.update();
   }
@@ -34,11 +33,11 @@ class Editor {
   // Add new character
   insertChar(text) {
     if (text) {
-      this.text[this.activeLineIndex] =
-        this.text[this.activeLineIndex].slice(0, this.cursorPos[0]) +
+      this.text[this.cursorPos.line] =
+        this.text[this.cursorPos.line].slice(0, this.cursorPos.column) +
         text +
-        this.text[this.activeLineIndex].slice(this.cursorPos[0]);
-      this.cursorPos[0]++;
+        this.text[this.cursorPos.line].slice(this.cursorPos.column);
+      this.cursorPos.column++;
     }
     this.update();
   }
@@ -46,22 +45,21 @@ class Editor {
   // Remove character
   // Have some bug over here, we have to delete character behind the cursor
   removeChar() {
-    if (this.cursorPos[0] === 0 && this.activeLineIndex === 0) return;
+    if (this.cursorPos.column === 0 && this.cursorPos.line === 0) return;
 
-    if (this.cursorPos[0] === 0) {
+    if (this.cursorPos.column === 0) {
       this.text.pop();
-      this.activeLineIndex--;
-      this.cursorPos[1]--;
-      this.cursorPos[0] = this.text[this.activeLineIndex].length;
+      this.cursorPos.line--;
+      this.cursorPos.column = this.text[this.cursorPos.line].length;
       this.update();
       return;
     }
 
-    this.text[this.activeLineIndex] =
-      this.text[this.activeLineIndex].slice(0, this.cursorPos[0] - 1) +
-      this.text[this.activeLineIndex].slice(this.cursorPos[0]);
+    this.text[this.cursorPos.line] =
+      this.text[this.cursorPos.line].slice(0, this.cursorPos.column - 1) +
+      this.text[this.cursorPos.line].slice(this.cursorPos.column);
 
-    this.cursorPos[0]--;
+    this.cursorPos.column--;
 
     this.update();
   }
@@ -69,76 +67,137 @@ class Editor {
   // Add line
   newLine() {
     this.text.push("");
-    this.cursorPos[0] = 0;
-    this.cursorPos[1]++;
-    this.activeLineIndex++;
+    this.cursorPos.column = 0;
+    this.cursorPos.line++;
     this.update();
   }
 
   matchCursorInXAxis() {
-    if (this.cursorPos[0] < this.text[this.activeLineIndex].length) {
-      return;
-    }
-    this.cursorPos[0] = this.text[this.activeLineIndex].length;
+    if (this.cursorPos.column < this.text[this.cursorPos.line].length) return;
+    this.cursorPos.column = this.text[this.cursorPos.line].length;
   }
-  moveCursorUp() {
-    if (this.cursorPos[1] !== 0) {
-      this.cursorPos[1]--;
-      this.activeLineIndex--;
-      this.matchCursorInXAxis();
-      this.update();
-    }
-  }
-  moveCursorDown() {
-    if (this.cursorPos[1] < this.text.length - 1) {
-      this.cursorPos[1]++;
-      this.activeLineIndex++;
-      this.matchCursorInXAxis();
-      this.update();
-    }
-  }
-  moveCursorLeft() {
-    if (this.cursorPos[0] !== 0) {
-      this.cursorPos[0]--;
-    } else if (this.cursorPos[1] !== 0) {
-      this.cursorPos[1]--;
-      this.activeLineIndex--;
-      this.cursorPos[0] = this.text[this.activeLineIndex].length;
-    }
-    this.update();
-  }
-  moveCursorRight() {
-    if (this.cursorPos[0] < this.text[this.activeLineIndex].length) {
-      this.cursorPos[0]++;
-    } else if (this.cursorPos[1] < this.text.length - 1) {
-      this.cursorPos[0] = 0;
-      this.cursorPos[1]++;
-      this.activeLineIndex++;
+
+  moveCursor(direction) {
+    switch (direction) {
+      case DIRECTION.UP:
+        if (this.cursorPos.line !== 0) {
+          this.cursorPos.line--;
+          this.matchCursorInXAxis();
+        }
+        break;
+      case DIRECTION.DOWN:
+        if (this.cursorPos.line < this.text.length - 1) {
+          this.cursorPos.line++;
+          this.matchCursorInXAxis();
+        }
+        break;
+      case DIRECTION.LEFT:
+        if (this.cursorPos.column !== 0) this.cursorPos.column--;
+        else if (this.cursorPos.line !== 0) {
+          this.cursorPos.line--;
+          this.cursorPos.column = this.text[this.cursorPos.line].length;
+        }
+        break;
+      case DIRECTION.RIGHT:
+        if (this.cursorPos.column < this.text[this.cursorPos.line].length)
+          this.cursorPos.column++;
+        else if (this.cursorPos.line < this.text.length - 1) {
+          this.cursorPos.column = 0;
+          this.cursorPos.line++;
+        }
+        break;
+      default:
+        break;
     }
     this.update();
   }
-  // draw line number.
-  drawLineNumber() {
-    this.text.map((v, i) => {
-      this.context.fillStyle = "white";
-      this.context.fillText(
-        i + 1,
-        8,
-        this.renderer.textMetrics.height + 5 + i * LINE_SPACE
-      );
-    });
+  moveCursorToEndOrStart(direction) {
+    switch (direction) {
+      case DIRECTION.LEFT:
+        this.cursorPos.column = 0;
+        break;
+      case DIRECTION.RIGHT:
+        this.cursorPos.column = this.text[this.cursorPos.line].length;
+        break;
+      default:
+        break;
+    }
+    this.update();
+  }
+
+  // DEPRECATED
+
+  /*   moveCursorUp() {}
+  moveCursorDown() {}
+  moveCursorLeft() {}
+  moveCursorRight() {} */
+
+  // Handle Key Events
+
+  handleKeyPress(key) {
+    switch (key) {
+      case "Control":
+      case "Alt":
+      case "Shift":
+        this.keyModifier = key;
+        return;
+      default:
+        break;
+    }
+
+    if (this.keyModifier === "Control") {
+      switch (key) {
+        case "a":
+        // TOOD: Select All
+        case "c":
+        // TODO:Copy
+        case "v":
+          // TODO:Paste
+          break;
+      }
+      this.keyModifier = 0;
+    }
+
+    switch (key) {
+      case "Backspace":
+        this.removeChar();
+        break;
+      case "Enter":
+        this.newLine();
+        break;
+      case "ArrowUp":
+        this.moveCursor(DIRECTION.UP);
+        break;
+      case "ArrowDown":
+        this.moveCursor(DIRECTION.DOWN);
+        break;
+      case "ArrowLeft":
+        this.moveCursor(DIRECTION.LEFT);
+        break;
+      case "ArrowRight":
+        this.moveCursor(DIRECTION.RIGHT);
+        break;
+      case "End":
+        this.moveCursorToEndOrStart(DIRECTION.RIGHT);
+        break;
+      case "Home":
+        this.moveCursorToEndOrStart(DIRECTION.LEFT);
+        break;
+      default:
+        break;
+    }
   }
 
   // Update and Re-draw everything.
   update() {
     this.renderer.update(this.text, this.cursorPos);
-    this.drawLineNumber();
+    this.renderer.drawLineNumber(this.text.length);
     input.style.transform = `translate(${
       5 +
       GUTTER_WIDTH +
-      this.cursorPos[0] * (this.renderer.textMetrics.width + 1.4)
+      this.cursorPos.column * (this.renderer.textMetrics.width + 1.4)
     }px,${
-      this.cursorPos[1] * LINE_SPACE + this.renderer.textMetrics.height - 5
+      this.cursorPos.line * LINE_SPACE + this.renderer.textMetrics.height - 5
     }px)`;
   }
 }
@@ -151,6 +210,19 @@ class Canvas2DRenderer {
     this.drawRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, BACKGROUND_COLOR);
     this.context.font = "14px monospace";
   }
+
+  drawLineNumber(length) {
+    // console.log(this);
+    for (let index = 0; index < length; index++) {
+      this.context.fillStyle = "white";
+      this.context.fillText(
+        index + 1,
+        8,
+        this.textMetrics.height + 5 + index * LINE_SPACE
+      );
+    }
+  }
+
   update(text, cursorPos) {
     // Background
     this.drawRect(
@@ -163,7 +235,6 @@ class Canvas2DRenderer {
 
     // Gutter
     this.drawRect(GUTTER_WIDTH, WINDOW_HEIGHT, 0, 0, "#2e2e2e");
-
     text.map((v, i) => {
       this.drawText(v, 0, i * LINE_SPACE);
     });
@@ -194,8 +265,8 @@ class Canvas2DRenderer {
       1,
       this.textMetrics.height + 6,
       // TODO: Replace hardcoded value
-      5 + GUTTER_WIDTH + cursorPos[0] * (this.textMetrics.width + 1.3),
-      cursorPos[1] * LINE_SPACE + this.textMetrics.height - 5,
+      5 + GUTTER_WIDTH + cursorPos.column * (this.textMetrics.width + 1.4),
+      cursorPos.line * LINE_SPACE + this.textMetrics.height - 5,
       "white"
     );
   }
@@ -218,28 +289,7 @@ input.addEventListener("input", (i) => {
 });
 
 input.addEventListener("keydown", (i) => {
-  switch (i.key) {
-    case "Backspace":
-      editor.removeChar();
-      break;
-    case "Enter":
-      editor.newLine();
-      break;
-    case "ArrowUp":
-      editor.moveCursorUp();
-      break;
-    case "ArrowDown":
-      editor.moveCursorDown();
-      break;
-    case "ArrowLeft":
-      editor.moveCursorLeft();
-      break;
-    case "ArrowRight":
-      editor.moveCursorRight();
-      break;
-    default:
-      break;
-  }
+  editor.handleKeyPress(i.key);
 });
 
 /*
